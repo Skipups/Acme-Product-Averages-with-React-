@@ -12,14 +12,215 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router-dom/5.0.1/react-router-dom.js"></script>
     <style>
+      body {
+        font-family: sans-serif;
+        color: black;
+      }
+      nav {
+        display: flex;
+        justify-content: space-around;
+      }
+      /*why isn't selected working*/
+      .selected {
+        background-color: green;
+        color: white;
+        padding: 0.25rem;
+        border-radius: 0.2rem;
+      }
+
+      #home {
+        padding: 10rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .eachProduct {
+        padding: 1rem;
+        justify-content: space-around;
+      }
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <h1>Acme Products Average React</h1>
+    </div>
     <script type="text/babel">
       const API = "https://acme-users-api-rev.herokuapp.com/api";
-      
-       const root = document.querySelector("#root");
+      const { Component } = React;
+      const { render } = ReactDOM;
+      const { Switch, Link, Route, HashRouter, Redirect } = ReactRouterDOM;
+
+      /*nav bar with home and products*/
+      const Nav = props => {
+        return (
+          <nav>
+            <Link to={"/"} className={props.path === "/" ? "selected" : ""}>
+              Home
+            </Link>
+            <Link
+              to={"/products"}
+              className={props.path === "/products" ? "selected" : ""}
+            >
+              Products {props.products.length}
+            </Link>
+          </nav>
+        );
+      };
+
+      /*Home page*/
+      const Home = props => {
+        const { numProducts, avPrice } = props;
+        return (
+          <div id="home">
+            We have {props.numProducts} products with the average price $
+            {avPrice}
+          </div>
+        );
+      };
+
+      const Products = props => {
+        const { offerings, products, company } = props;
+        //console.log("offerings:", offerings);
+        let arrOfObjEachProd = [];
+        products.forEach(product => {
+          let prodCard = {
+            id: product.id,
+            name: product.name,
+            suggestedPrice: product.suggestedPrice,
+            createdAt: product.createdAt,
+            averagePrice: 0,
+            offeredPrices: [],
+            lowestPrice: 0,
+            lowestPriceCompany: ""
+          };
+          //calc aveageprice, offered prices
+          offerings.forEach(offer => {
+            if (offer.productId === product.id) {
+              prodCard.offeredPrices.push(offer.price);
+            }
+            ///
+            prodCard.averagePrice =
+              prodCard.offeredPrices.reduce((accum, offer) => {
+                return accum + offer;
+              }, 0) / prodCard.offeredPrices.length;
+            ///
+            prodCard.lowestPrice = Math.min(...prodCard.offeredPrices);
+          });
+
+          offerings.forEach(offer => {
+            if (offer.price === prodCard.lowestPrice) {
+              company.forEach(comp => {
+                if (comp.id === offer.companyId) {
+                  prodCard.lowestPriceCompany = comp.name;
+                }
+              });
+            }
+          });
+          arrOfObjEachProd.push(prodCard);
+          console.log(arrOfObjEachProd);
+        });
+
+        return (
+          <div id="productsPage">
+            <ul>
+              {arrOfObjEachProd.map(prod => (
+                <li className={"eachProduct"} key={prod.id}>
+                  Product: {prod.name}
+                  <div> Suggested Price: ${prod.suggestedPrice}</div>
+                  <div> Average Price: ${prod.averagePrice.toFixed(2)}</div>
+                  <div>
+                    {" "}
+                    Lowest: ${prod.Lowest} offered by {prod.lowestPriceCompany}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      };
+
+      class App extends Component {
+        constructor() {
+          super();
+          this.state = {
+            products: [],
+            offerings: [],
+            company: []
+          };
+        }
+        async componentDidMount() {
+          const compData = (await axios.get(
+            `https://acme-users-api-rev.herokuapp.com/api/companies`
+          )).data;
+          const prodData = (await axios.get(
+            `https://acme-users-api-rev.herokuapp.com/api/products`
+          )).data;
+
+          const offerings = (await axios.get(
+            "https://acme-users-api-rev.herokuapp.com/api/offerings"
+          )).data;
+          // why doesn't this work? console.log(offerings)
+          //this.setState({ products, offerings, companies });
+          this.setState({ offerings: offerings });
+          this.setState({ products: prodData });
+          this.setState({ company: compData });
+        }
+
+        averagePrice(offerings) {
+          const avrg = offerings.reduce((accum, price) => {
+            console.log("price", price.price);
+            console.log("accum", accum);
+            return accum + price.price;
+          }, 0);
+          console.log(avrg);
+          return (avrg / offerings.length).toFixed(2);
+        }
+
+        render() {
+          const { products, company, offerings } = this.state;
+          //  const processedOffers = this.mapOfferingCompanies(offerings, companies);
+          //         const processedProds = this.mapProductOfferings(products, processedOffers);
+          //         console.log(processedOffers);
+          //         console.log(processedProds);
+          if (!company.length) {
+            return <div id="container">Loading ...</div>;
+          }
+          return (
+            <HashRouter>
+              <Route
+                render={props => (
+                  <Nav path={props.location.pathname} products={products} />
+                )}
+              />
+              <Switch>
+                <Route
+                  exact
+                  path="/"
+                  render={props => (
+                    <Home
+                      numProducts={products.length}
+                      avPrice={this.averagePrice(offerings)}
+                    />
+                  )}
+                />
+                <Route
+                  path="/products"
+                  render={props => (
+                    <Products
+                      products={products}
+                      company={company}
+                      offerings={offerings}
+                    />
+                  )}
+                />
+              </Switch>
+            </HashRouter>
+          );
+        }
+      }
+
+      const root = document.querySelector("#root");
       render(<App />, root);
     </script>
   </body>
