@@ -44,6 +44,7 @@
   <body>
     <div id="root">
       <h1>Acme Products Average React</h1>
+      <div></div>
     </div>
     <script type="text/babel">
       const API = "https://acme-users-api-rev.herokuapp.com/api";
@@ -131,7 +132,8 @@
                   <div> Average Price: ${prod.averagePrice.toFixed(2)}</div>
                   <div>
                     {" "}
-                    Lowest: ${prod.Lowest} offered by {prod.lowestPriceCompany}
+                    Lowest: ${prod.lowestPrice} offered by{" "}
+                    {prod.lowestPriceCompany}
                   </div>
                 </li>
               ))}
@@ -179,43 +181,43 @@
 
         render() {
           const { products, company, offerings } = this.state;
-          //  const processedOffers = this.mapOfferingCompanies(offerings, companies);
-          //         const processedProds = this.mapProductOfferings(products, processedOffers);
-          //         console.log(processedOffers);
-          //         console.log(processedProds);
-          if (!company.length) {
-            return <div id="container">Loading ...</div>;
+
+          if (!company.length && !products.length && !offerings.length) {
+            return <div id="container">Please hold</div>;
           }
           return (
-            <HashRouter>
-              <Route
-                render={props => (
-                  <Nav path={props.location.pathname} products={products} />
-                )}
-              />
-              <Switch>
+            <div id="container">
+              <h1>Acme Product Averages With React</h1>
+              <HashRouter>
                 <Route
-                  exact
-                  path="/"
                   render={props => (
-                    <Home
-                      numProducts={products.length}
-                      avPrice={this.averagePrice(offerings)}
-                    />
+                    <Nav path={props.location.pathname} products={products} />
                   )}
                 />
-                <Route
-                  path="/products"
-                  render={props => (
-                    <Products
-                      products={products}
-                      company={company}
-                      offerings={offerings}
-                    />
-                  )}
-                />
-              </Switch>
-            </HashRouter>
+                <Switch>
+                  <Route
+                    exact
+                    path="/"
+                    render={props => (
+                      <Home
+                        numProducts={products.length}
+                        avPrice={this.averagePrice(offerings)}
+                      />
+                    )}
+                  />
+                  <Route
+                    path="/products"
+                    render={props => (
+                      <Products
+                        products={products}
+                        company={company}
+                        offerings={offerings}
+                      />
+                    )}
+                  />
+                </Switch>
+              </HashRouter>
+            </div>
           );
         }
       }
